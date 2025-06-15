@@ -7,12 +7,39 @@
 #include <mutex>
 #include <chrono>
 #include <iomanip>
+#include <unordered_set>
+
+template <typename T>
+class Metric
+{
+private:
+    std::string _name;
+    T _value;
+    std::chrono::system_clock::time_point _time;
+public:
+    Metric() {}
+    Metric(const std::string& name, 
+        const T& value)
+    {
+        _name = name;
+        _value = value;
+        _time = std::chrono::system_clock::now();
+    }
+    Metric(const std::chrono::system_clock::time_point& time,
+        const std::string& name,
+        const T& value)
+    {
+        _name = name;
+        _value = value;
+        _time = time;
+    }
+};
 
 template <typename T>
 class MetricsCollector
 {
 private:
-    std::mutex _mutex;
+    std::mutex _mutex;    
     std::map<std::chrono::system_clock::time_point, std::vector<std::pair<std::string, T>>> _metrics;
 public:
     bool AddMetrics(const std::vector<std::pair<std::string, T>>& metrics)
