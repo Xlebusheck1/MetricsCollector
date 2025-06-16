@@ -27,12 +27,39 @@ MetricsCollector collector;
 ```cpp
 // Одиночная метрика
 collector.AddMetric("CPU", 0.97);
-
+_________________________________________________________________________________________________________________________________________
 // Несколько метрик сразу
 collector.AddMetrics({
     Metric<double>("CPU", 1.12),
     Metric<double>("Memory Usage", 30.34)
 });
+_________________________________________________________________________________________________________________________________________
+// Через initializer_list
+collector.AddMetrics({
+    {"Memory_MB", 1024},
+    {"Disk_GB", 512}
+});
+_________________________________________________________________________________________________________________________________________
+// Метрики с одинаковым временем будут сгруппированы
+auto now = std::chrono::system_clock::now();
+collector.AddMetric(Metric<int>(now, "Voltage", 220));
+collector.AddMetric(Metric<std::string>(now, "Mode", "Turbo"));
+// Сохранятся в одну строку:
+// [2023-11-15 14:30:00.123 "Voltage" 220 "Mode" "Turbo"]
+_________________________________________________________________________________________________________________________________________
+//Кастомный тип метрики
+struct CustomData {
+    int id;
+    std::string info;
+    friend std::ostream& operator<<(std::ostream& os, const CustomData& data) {
+        return os << data.id << ":" << std::quoted(data.info);
+    }
+};
+collector.AddMetric("Custom", CustomData{42, "secret"});
+// В файле: "Custom" 42:"secret"
+_________________________________________________________________________________________________________________________________________
+// Добавление через итераторы
+collector.AddMetrics(external_data.begin(), external_data.end());
 ```
 4. Сохраните в файл:
 ```cpp
