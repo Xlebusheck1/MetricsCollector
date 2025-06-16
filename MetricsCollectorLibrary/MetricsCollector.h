@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <string_view>
 
 class BaseMetric
 {
@@ -82,22 +83,22 @@ public:
     MetricsCollector(const MetricsCollector&) = delete;
 
     template <typename T>
-    void AddMetric(const std::string& name, const T& value)
+    void AddMetric(std::string_view name, const T& value)\
     {
-        return AddMetric(Metric<T>(name, value));
-    }       
+        AddMetric(Metric<T>(std::string(name), value));
+    }
 
     template <typename T>
     void AddMetric(const Metric<T>& metric)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         AddMetricImpl(metric);        
     }
 
     template <typename T>
     void AddMetrics(const std::vector<Metric<T>>& metrics)  //Для Vector (возможность удобного синтаксиса)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         for (const auto& m : metrics) {
             AddMetricImpl(m);
         }
@@ -112,7 +113,7 @@ public:
     template <typename Iterator>
     void AddMetrics(Iterator begin, Iterator end) //Универсальные метод для stl контейнеров
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         for (; begin != end; ++begin) {
             AddMetricImpl(*begin);
         }
@@ -120,7 +121,7 @@ public:
 
     bool SaveToFile(const std::string& filename)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         if (_metrics.empty())
             return false;
 
@@ -128,9 +129,9 @@ public:
         if (!file.is_open())
             return false;
 
-        for (const auto& metric_pair : _metrics) {
-            file << FormatTime(metric_pair.first);
-            for (const auto& metric_ptr : metric_pair.second) {
+        for (const auto& [time, metrics] : _metrics) {
+            file << FormatTime(time);
+            for (const auto& metric_ptr : metrics) {
                 file << " ";
                 metric_ptr->WriteToStream(file);
             }
@@ -142,7 +143,7 @@ public:
 
     ~MetricsCollector() 
     {
-        std::lock_guard<std::mutex> lock(_mutex);
+        std::lock_guard lock(_mutex);
         _metrics.clear();
     }
 };
