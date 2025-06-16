@@ -20,9 +20,7 @@ public:
         const std::string& name) : _name(name), _time(time) { }
 
     const std::string& GetName() const { return _name; }
-    const std::chrono::system_clock::time_point& GetTime() const { return _time; }
-
-    virtual bool operator<(const BaseMetric& other) const = 0;
+    const std::chrono::system_clock::time_point& GetTime() const { return _time; }    
     virtual void WriteToStream(std::ostream& os) const = 0;
     virtual ~BaseMetric() = default;
 };
@@ -43,19 +41,7 @@ public:
         const std::string& name,
         const T& value) :
         BaseMetric(time, name),
-        _value(value) { }
-
-    bool operator<(const BaseMetric& other) const override
-    {
-        const auto* derived = dynamic_cast<const Metric<T>*>(&other);
-        if (!derived) return false;
-
-        if (_time != derived->_time)
-            return _time < derived->_time;
-        if (_value != derived->_value)
-            return _value < derived->_value;
-        return _name < derived->_name;
-    }
+        _value(value) { }    
 
     void WriteToStream(std::ostream& os) const override
     {
@@ -96,31 +82,48 @@ public:
     MetricsCollector(const MetricsCollector&) = delete;
 
     template <typename T>
-    bool AddMetric(const std::string& name, const T& value)
+    void AddMetric(const std::string& name, const T& value)
     {
         return AddMetric(Metric<T>(name, value));
     }       
 
     template <typename T>
-    bool AddMetric(const Metric<T>& metric)
+    void AddMetric(const Metric<T>& metric)
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        AddMetricImpl(metric);
-        return true;
+        AddMetricImpl(metric);        
     }
 
     template <typename T>
-    void AddMetrics(const std::vector<Metric<T>>& metrics) 
+    void AddMetrics(const std::vector<Metric<T>>& metrics)  //Для Vector (возможность удобного синтаксиса)
     {
         std::lock_guard<std::mutex> lock(_mutex);
         for (const auto& m : metrics) {
             AddMetricImpl(m);
+        }
+    }    
+
+    template <typename T>
+    void AddMetrics(std::initializer_list<Metric<T>> metrics) //Для Initializer List
+    {
+        AddMetrics(std::vector<Metric<T>>(metrics));  
+    }
+    
+    template <typename Iterator>
+    void AddMetrics(Iterator begin, Iterator end) //Универсальные метод для stl контейнеров
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        for (; begin != end; ++begin) {
+            AddMetricImpl(*begin);
         }
     }
 
     bool SaveToFile(const std::string& filename)
     {
         std::lock_guard<std::mutex> lock(_mutex);
+        if (_metrics.empty())
+            return false;
+
         std::ofstream file(filename);
         if (!file.is_open())
             return false;
@@ -133,12 +136,12 @@ public:
             }
             file << "\n";
         }
+        file.close();
+        return true;
     }
 
-    bool Close()
-    {
+    ~MetricsCollector() {
         std::lock_guard<std::mutex> lock(_mutex);
         _metrics.clear();
-        return true;
     }
 };
