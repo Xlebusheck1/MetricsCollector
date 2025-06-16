@@ -82,17 +82,16 @@ public:
     MetricsCollector(const MetricsCollector&) = delete;
 
     template <typename T>
-    bool AddMetric(const std::string& name, const T& value)
+    void AddMetric(const std::string& name, const T& value)
     {
         return AddMetric(Metric<T>(name, value));
     }       
 
     template <typename T>
-    bool AddMetric(const Metric<T>& metric)
+    void AddMetric(const Metric<T>& metric)
     {
         std::lock_guard<std::mutex> lock(_mutex);
-        AddMetricImpl(metric);
-        return true;
+        AddMetricImpl(metric);        
     }
 
     template <typename T>
@@ -122,6 +121,9 @@ public:
     bool SaveToFile(const std::string& filename)
     {
         std::lock_guard<std::mutex> lock(_mutex);
+        if (_metrics.empty())
+            return false;
+
         std::ofstream file(filename);
         if (!file.is_open())
             return false;
@@ -134,6 +136,8 @@ public:
             }
             file << "\n";
         }
+        file.close();
+        return true;
     }
 
     ~MetricsCollector() {
