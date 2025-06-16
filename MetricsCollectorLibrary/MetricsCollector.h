@@ -96,11 +96,26 @@ public:
     }
 
     template <typename T>
-    void AddMetrics(const std::vector<Metric<T>>& metrics) 
+    void AddMetrics(const std::vector<Metric<T>>& metrics)  //Для Vector (возможность удобного синтаксиса)
     {
         std::lock_guard<std::mutex> lock(_mutex);
         for (const auto& m : metrics) {
             AddMetricImpl(m);
+        }
+    }    
+
+    template <typename T>
+    void AddMetrics(std::initializer_list<Metric<T>> metrics) //Для Initializer List
+    {
+        AddMetrics(std::vector<Metric<T>>(metrics));  
+    }
+    
+    template <typename Iterator>
+    void AddMetrics(Iterator begin, Iterator end) //Универсальные метод для stl контейнеров
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        for (; begin != end; ++begin) {
+            AddMetricImpl(*begin);
         }
     }
 
