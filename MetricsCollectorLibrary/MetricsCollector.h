@@ -99,22 +99,7 @@ public:
     bool AddMetric(const std::string& name, const T& value)
     {
         return AddMetric(Metric<T>(name, value));
-    }
-
-    bool AddMetric(const char* name, const char* value) 
-    {
-        return AddMetric(std::string(name), std::string(value));
-    }
-
-    bool AddMetric(const std::string& name, const char* value) 
-    {
-        return AddMetric(name, std::string(value));
-    }
-
-    bool AddMetric(const char* name, const std::string& value)
-    {
-        return AddMetric(std::string(name), value);
-    }
+    }       
 
     template <typename T>
     bool AddMetric(const Metric<T>& metric)
