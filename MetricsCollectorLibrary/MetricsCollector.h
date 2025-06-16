@@ -20,9 +20,7 @@ public:
         const std::string& name) : _name(name), _time(time) { }
 
     const std::string& GetName() const { return _name; }
-    const std::chrono::system_clock::time_point& GetTime() const { return _time; }
-
-    virtual bool operator<(const BaseMetric& other) const = 0;
+    const std::chrono::system_clock::time_point& GetTime() const { return _time; }    
     virtual void WriteToStream(std::ostream& os) const = 0;
     virtual ~BaseMetric() = default;
 };
@@ -43,19 +41,7 @@ public:
         const std::string& name,
         const T& value) :
         BaseMetric(time, name),
-        _value(value) { }
-
-    bool operator<(const BaseMetric& other) const override
-    {
-        const auto* derived = dynamic_cast<const Metric<T>*>(&other);
-        if (!derived) return false;
-
-        if (_time != derived->_time)
-            return _time < derived->_time;
-        if (_value != derived->_value)
-            return _value < derived->_value;
-        return _name < derived->_name;
-    }
+        _value(value) { }    
 
     void WriteToStream(std::ostream& os) const override
     {
@@ -135,10 +121,8 @@ public:
         }
     }
 
-    bool Close()
-    {
+    ~MetricsCollector() {
         std::lock_guard<std::mutex> lock(_mutex);
         _metrics.clear();
-        return true;
     }
 };
