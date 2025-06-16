@@ -140,7 +140,8 @@ public:
         return true;
     }
 
-    ~MetricsCollector() {
+    ~MetricsCollector() 
+    {
         std::lock_guard<std::mutex> lock(_mutex);
         _metrics.clear();
     }
